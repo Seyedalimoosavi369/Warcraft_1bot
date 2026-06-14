@@ -2,660 +2,588 @@
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Warcraft Bot v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Warcraft v4</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    background: #0d1117;
-    color: #c9d1d9;
-    font-family: 'Segoe UI', sans-serif;
-    min-height: 100vh;
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  min-height:100vh;
+  background-color:#1a2a1a;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.3) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,0,0,0.3) 1px,transparent 1px),
+    radial-gradient(ellipse at center,#1e3a1e 0%,#0d1f0d 100%);
+  background-size:30px 30px,30px 30px,100% 100%;
+  color:#c8a84b;
+  font-family:'Georgia',serif;
+  overflow-x:hidden;
 }
-.header {
-    background: linear-gradient(135deg, #1a1f2e, #2d1b69);
-    padding: 20px;
-    text-align: center;
-    border-bottom: 2px solid #f0c040;
+
+/* Wood panel texture */
+.panel{
+  background:linear-gradient(180deg,#2a1f0e 0%,#1a1308 50%,#2a1f0e 100%);
+  border:3px solid #8b6914;
+  border-radius:3px;
+  position:relative;
+  box-shadow:inset 0 0 20px rgba(0,0,0,0.8),0 4px 15px rgba(0,0,0,0.9);
 }
-.header h1 { color: #f0c040; font-size: 24px; text-shadow: 0 0 10px #f0c040; }
-.coins { color: #ffd700; font-size: 18px; margin-top: 5px; }
-.menu { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.btn {
-    background: linear-gradient(135deg, #1a2744, #2d1b69);
-    border: 2px solid #4a3f8f;
-    border-radius: 12px;
-    padding: 20px 10px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    color: white;
+.panel::before{
+  content:'';position:absolute;top:4px;left:4px;right:4px;bottom:4px;
+  border:1px solid rgba(200,168,75,0.3);border-radius:1px;pointer-events:none;
 }
-.btn:active { transform: scale(0.95); border-color: #f0c040; }
-.btn .icon { font-size: 32px; margin-bottom: 8px; }
-.btn .label { font-size: 14px; color: #c9d1d9; }
-.screen { display: none; padding: 20px; }
-.screen.active { display: block; }
-.hero-card {
-    background: linear-gradient(135deg, #1a2744, #2d1b69);
-    border: 2px solid #4a3f8f;
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 15px;
-    cursor: pointer;
-    transition: all 0.3s;
+.panel::after{
+  content:'';position:absolute;top:6px;left:6px;right:6px;bottom:6px;
+  border:1px solid rgba(200,168,75,0.1);border-radius:1px;pointer-events:none;
 }
-.hero-card:active { border-color: #f0c040; }
-.hero-card h3 { color: #f0c040; font-size: 18px; }
-.hero-card .stats { display: flex; gap: 15px; margin-top: 8px; font-size: 13px; }
-.stat { color: #8b949e; }
-.stat span { color: white; }
-.back-btn {
-    background: #2d1b69;
-    border: 1px solid #4a3f8f;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-bottom: 15px;
-    display: inline-block;
+
+/* Gold button style */
+.gold-btn{
+  background:linear-gradient(180deg,#4a3510 0%,#2a1f08 40%,#1a1305 60%,#2a1f08 100%);
+  border:2px solid #8b6914;
+  color:#c8a84b;
+  font-family:'Georgia',serif;
+  cursor:pointer;
+  position:relative;
+  box-shadow:inset 0 0 10px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.8);
+  transition:all 0.15s;
+  text-shadow:0 1px 3px rgba(0,0,0,0.8);
 }
-.progress-bar {
-    background: #21262d;
-    border-radius: 10px;
-    height: 12px;
-    margin-top: 5px;
-    overflow: hidden;
+.gold-btn::before{content:'';position:absolute;top:2px;left:2px;right:2px;bottom:2px;border:1px solid rgba(200,168,75,0.2);border-radius:1px;pointer-events:none}
+.gold-btn:active{transform:scale(0.97);box-shadow:inset 0 2px 10px rgba(0,0,0,0.8),0 0 10px rgba(200,168,75,0.3)}
+
+.screen{display:none;min-height:100vh;padding:10px}
+.screen.active{display:block}
+
+/* Top bar */
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 12px;margin-bottom:10px;
+  background:linear-gradient(180deg,#3a2a0a,#1a1305);
+  border:2px solid #8b6914;border-radius:3px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.8);
 }
-.progress-fill {
-    background: linear-gradient(90deg, #f0c040, #ff6b35);
-    height: 100%;
-    border-radius: 10px;
-    transition: width 0.5s;
+.topbar-title{color:#c8a84b;font-size:16px;font-weight:bold;text-shadow:0 0 10px rgba(200,168,75,0.5)}
+.topbar-coins{color:#ffd700;font-size:13px}
+
+/* Nav buttons row */
+.nav-row{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:3px}
+.nav-btn{
+  flex:1;min-width:60px;padding:8px 5px;font-size:11px;text-align:center;
+  border-radius:2px;white-space:nowrap;
 }
-.battle-area {
-    background: linear-gradient(135deg, #1a0a0a, #2d0a0a);
-    border: 2px solid #8b0000;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    margin: 15px 0;
+.nav-btn.active-nav{border-color:#f0c040;color:#f0c040}
+
+/* Hero card - main profile */
+.hero-profile-card{
+  padding:12px;margin-bottom:10px;
 }
-.hp-bar { margin: 10px 0; }
-.hp-bar .label { font-size: 12px; color: #8b949e; margin-bottom: 3px; }
-.hp-fill { background: linear-gradient(90deg, #00ff00, #00cc00); }
-.enemy-hp { background: linear-gradient(90deg, #ff4444, #cc0000); }
-.attack-btn {
-    background: linear-gradient(135deg, #8b0000, #cc0000);
-    border: none;
-    color: white;
-    padding: 15px 40px;
-    border-radius: 10px;
-    font-size: 18px;
-    cursor: pointer;
-    margin: 10px;
-    transition: all 0.3s;
+.hero-card-inner{display:flex;gap:10px;align-items:flex-start}
+.hero-portrait{
+  width:80px;height:80px;border:2px solid #8b6914;border-radius:2px;
+  background:linear-gradient(135deg,#1a1a0a,#0a0a05);
+  display:flex;align-items:center;justify-content:center;
+  font-size:40px;flex-shrink:0;
+  box-shadow:inset 0 0 15px rgba(0,0,0,0.8);
 }
-.attack-btn:active { transform: scale(0.95); }
-.item-card {
-    background: #1a2744;
-    border: 1px solid #4a3f8f;
-    border-radius: 10px;
-    padding: 12px;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.hero-stats-col{flex:1}
+.hero-name-big{color:#f0c040;font-size:16px;font-weight:bold;margin-bottom:5px;text-shadow:0 0 8px rgba(240,192,64,0.4)}
+.hero-sub{color:#6b5b2a;font-size:11px;margin-bottom:8px}
+
+/* Bars */
+.bar-row{margin-bottom:5px}
+.bar-label{display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px}
+.bar-track{height:12px;background:#0a0805;border:1px solid #2a1f05;border-radius:1px;overflow:hidden}
+.bar-fill{height:100%;border-radius:1px;transition:width 0.4s}
+.hp-bar{background:linear-gradient(90deg,#6b0000,#aa0000,#cc2200)}
+.mana-bar{background:linear-gradient(90deg,#00006b,#0000aa,#2222cc)}
+.xp-bar{background:linear-gradient(90deg,#4a3510,#8b6914,#c8a84b)}
+
+/* Stats row */
+.stats-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.stat-box{
+  background:rgba(0,0,0,0.4);border:1px solid #3a2a0a;
+  padding:4px 8px;border-radius:2px;font-size:11px;
 }
-.buy-btn {
-    background: #f0c040;
-    color: #000;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
+.stat-box span{color:#c8a84b}
+
+/* Battle area at bottom */
+.battle-ground{
+  background:linear-gradient(180deg,#0d1a0d 0%,#0a150a 60%,#0d2a0d 100%);
+  border:2px solid #2a4a2a;border-radius:3px;
+  padding:10px;margin-top:10px;
+  position:relative;min-height:150px;
+  box-shadow:inset 0 0 30px rgba(0,0,0,0.9);
+  overflow:hidden;
 }
-.daily-btn {
-    background: linear-gradient(135deg, #f0c040, #ff6b35);
-    border: none;
-    color: #000;
-    padding: 20px 40px;
-    border-radius: 12px;
-    font-size: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 20px;
+.battle-ground::before{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:30px;
+  background:linear-gradient(180deg,transparent,rgba(0,50,0,0.4));
 }
-.leaderboard-item {
-    background: #1a2744;
-    border: 1px solid #4a3f8f;
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
+.fighters{display:flex;justify-content:space-around;align-items:flex-end;padding:10px 0 20px}
+.fighter{text-align:center;position:relative}
+.fighter-sprite{font-size:48px;display:block;filter:drop-shadow(0 5px 10px rgba(0,0,0,0.9))}
+.fighter.my-fighter .fighter-sprite{filter:drop-shadow(0 0 8px rgba(64,128,255,0.6)) drop-shadow(0 5px 10px rgba(0,0,0,0.9))}
+.fighter.enemy-fighter .fighter-sprite{filter:drop-shadow(0 0 8px rgba(255,64,64,0.6)) drop-shadow(0 5px 10px rgba(0,0,0,0.9));transform:scaleX(-1)}
+.fighter-name{font-size:10px;color:#6b5b2a;margin-top:3px}
+.fighter.my-fighter .fighter-name{color:#4466aa}
+.fighter.enemy-fighter .fighter-name{color:#aa4444}
+.fighter-shadow{width:40px;height:8px;background:radial-gradient(ellipse,rgba(0,0,0,0.6),transparent);margin:0 auto;border-radius:50%}
+
+.battle-divider{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  color:#8b0000;font-size:16px;font-weight:bold;
+  text-shadow:0 0 10px rgba(139,0,0,0.8);
+  background:rgba(0,0,0,0.6);padding:3px 8px;border:1px solid #8b0000;border-radius:2px;
 }
-.type-btn {
-    background: linear-gradient(135deg, #1a2744, #2d1b69);
-    border: 2px solid #4a3f8f;
-    border-radius: 10px;
-    padding: 15px;
-    color: white;
-    cursor: pointer;
-    margin-bottom: 10px;
-    width: 100%;
-    font-size: 16px;
-    transition: all 0.3s;
+
+/* Attack animation */
+.fighter.attacking .fighter-sprite{animation:atk 0.4s ease}
+.fighter.hit .fighter-sprite{animation:hit 0.3s ease}
+@keyframes atk{0%{transform:scaleX(1) translateX(0)}40%{transform:scaleX(1) translateX(20px)}100%{transform:scaleX(1) translateX(0)}}
+@keyframes hit{0%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}100%{transform:translateX(0)}}
+.enemy-fighter.attacking .fighter-sprite{animation:atkE 0.4s ease}
+.enemy-fighter.hit .fighter-sprite{animation:hitE 0.3s ease}
+@keyframes atkE{0%{transform:scaleX(-1) translateX(0)}40%{transform:scaleX(-1) translateX(20px)}100%{transform:scaleX(-1) translateX(0)}}
+@keyframes hitE{0%{transform:scaleX(-1) translateX(0)}25%{transform:scaleX(-1) translateX(-8px)}75%{transform:scaleX(-1) translateX(8px)}100%{transform:scaleX(-1) translateX(0)}}
+
+/* Turn bar */
+.turn-bar{
+  text-align:center;padding:5px;font-size:12px;font-weight:bold;
+  border:1px solid #3a2a0a;border-radius:2px;margin-bottom:8px;
 }
-.type-btn:active { border-color: #f0c040; }
+.turn-bar.my-turn{color:#44cc44;background:rgba(0,80,0,0.2);border-color:#006600}
+.turn-bar.enemy-turn{color:#cc4444;background:rgba(80,0,0,0.2);border-color:#660000}
+
+/* Skills */
+.skills-area{margin-top:8px}
+.skills-title{color:#5a4a2a;font-size:10px;text-align:center;margin-bottom:6px;letter-spacing:1px}
+.skills-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.skill-btn{
+  padding:8px;border-radius:2px;font-size:11px;
+  position:relative;overflow:hidden;
+}
+.skill-btn.locked{opacity:0.3}
+.skill-btn.used{opacity:0.4}
+.skill-n{color:#f0c040;font-weight:bold;font-size:11px}
+.skill-d{color:#5a4a2a;font-size:10px;margin-top:2px}
+.skill-c{color:#4444aa;font-size:10px}
+.cd-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;font-size:20px;color:#ff6b35;font-weight:bold}
+
+/* Attack btn */
+.attack-btn{
+  width:100%;padding:13px;font-size:15px;font-weight:bold;
+  margin-top:8px;border-radius:2px;letter-spacing:1px;
+  text-shadow:0 0 8px rgba(255,0,0,0.5);
+  background:linear-gradient(180deg,#5a0000,#3a0000);
+  border-color:#8b0000;color:#ff6666;
+  box-shadow:0 0 15px rgba(139,0,0,0.3);
+}
+.flee-btn{
+  width:100%;padding:8px;font-size:12px;margin-top:5px;border-radius:2px;
+  background:linear-gradient(180deg,#1a1208,#0d0b05);border-color:#3a2a0a;color:#5a4a2a;
+}
+
+/* Battle log */
+.battle-log{max-height:80px;overflow-y:auto;padding:6px;background:rgba(0,0,0,0.5);border:1px solid #1a1508;border-radius:2px;margin-top:6px}
+.log-line{font-size:10px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.log-line.dmg{color:#cc4444}
+.log-line.heal{color:#44aa44}
+.log-line.skl{color:#c8a84b}
+.log-line.sys{color:#3a2a15}
+
+/* Shop items */
+.item-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px;margin-bottom:8px;
+}
+.item-name{color:#c8a84b;font-size:13px}
+.item-stats{color:#5a4a2a;font-size:11px}
+.item-price{color:#8b6914;font-size:12px}
+
+/* Damage float */
+.dmg-float{position:fixed;font-size:20px;font-weight:bold;pointer-events:none;animation:fup 0.9s ease forwards;z-index:999;font-family:'Georgia',serif}
+@keyframes fup{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-45px)}}
+
+/* Popup */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999}
+.overlay.active{display:block}
+.popup{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;min-width:260px;max-width:90vw;padding:20px}
+.popup.active{display:block}
+.popup h2{color:#f0c040;margin-bottom:10px;text-align:center;text-shadow:0 0 10px rgba(240,192,64,0.5)}
+.popup p{color:#6b5b2a;font-size:13px;text-align:center;white-space:pre-line;margin-bottom:15px}
+.popup-ok{width:100%;padding:10px;font-size:14px;border-radius:2px}
 </style>
 </head>
 <body>
 
-<div id="main-screen">
-    <div class="header">
-        <h1>⚔️ Warcraft Bot</h1>
-        <div class="coins" id="coins-display">💰 در حال بارگذاری...</div>
-        <div style="color:#8b949e;font-size:13px;margin-top:3px" id="hero-display"></div>
+<!-- MAIN SCREEN -->
+<div id="main-screen" class="screen active">
+  <div class="topbar">
+    <div class="topbar-title">⚔️ WARCRAFT</div>
+    <div class="topbar-coins" id="top-coins">💰 500</div>
+  </div>
+  <div class="nav-row">
+    <button class="gold-btn nav-btn" onclick="showTab('home')">🏠 خانه</button>
+    <button class="gold-btn nav-btn" onclick="showTab('pvp')">⚔️ جنگ</button>
+    <button class="gold-btn nav-btn" onclick="showTab('shop')">🛡️ مغازه</button>
+    <button class="gold-btn nav-btn" onclick="showTab('craft')">⚗️ ساخت</button>
+    <button class="gold-btn nav-btn" onclick="showTab('daily')">🎁 جایزه</button>
+  </div>
+
+  <!-- HOME TAB -->
+  <div id="tab-home">
+    <div class="panel hero-profile-card" id="hero-card">
+      <div style="text-align:center;color:#5a4a2a;padding:20px">هیرو انتخاب نشده</div>
     </div>
-    <div class="menu">
-        <div class="btn" onclick="showScreen('pvp')">
-            <div class="icon">⚔️</div>
-            <div class="label">مبارزه PvP</div>
+    <div class="battle-ground" id="battle-preview">
+      <div class="fighters">
+        <div class="fighter my-fighter" id="my-fighter">
+          <span class="fighter-sprite" id="my-sprite">⚔️</span>
+          <div class="fighter-shadow"></div>
+          <div class="fighter-name" id="my-fname">من</div>
         </div>
-        <div class="btn" onclick="showScreen('profile')">
-            <div class="icon">👤</div>
-            <div class="label">پروفایل</div>
+        <div class="battle-divider">VS</div>
+        <div class="fighter enemy-fighter" id="enemy-fighter">
+          <span class="fighter-sprite" id="enemy-sprite">👿</span>
+          <div class="fighter-shadow"></div>
+          <div class="fighter-name" id="enemy-fname">دشمن</div>
         </div>
-        <div class="btn" onclick="showScreen('shop')">
-            <div class="icon">🎒</div>
-            <div class="label">فروشگاه</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PVP TAB -->
+  <div id="tab-pvp" style="display:none">
+    <div id="pvp-content"></div>
+    <!-- BATTLE UI -->
+    <div id="battle-ui" style="display:none">
+      <div class="turn-bar my-turn" id="turn-bar">نوبت توئه!</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+        <div>
+          <div class="bar-label"><span style="color:#cc4444">❤️ <span id="b-my-hp">0</span>/<span id="b-my-maxhp">0</span></span></div>
+          <div class="bar-track"><div class="bar-fill hp-bar" id="b-my-hp-bar" style="width:100%"></div></div>
+          <div class="bar-label" style="margin-top:3px"><span style="color:#4444cc">💧 <span id="b-my-mana">100</span>/100</span></div>
+          <div class="bar-track"><div class="bar-fill mana-bar" id="b-my-mana-bar" style="width:100%"></div></div>
         </div>
-        <div class="btn" onclick="showScreen('leaderboard')">
-            <div class="icon">🏆</div>
-            <div class="label">لیدربورد</div>
+        <div>
+          <div class="bar-label"><span style="color:#44aa44">❤️ <span id="b-en-hp">0</span>/<span id="b-en-maxhp">0</span></span></div>
+          <div class="bar-track"><div class="bar-fill" style="background:linear-gradient(90deg,#006600,#00aa00);width:100%" id="b-en-hp-bar"></div></div>
         </div>
-        <div class="btn" onclick="showScreen('daily')">
-            <div class="icon">🎁</div>
-            <div class="label">جایزه روزانه</div>
-        </div>
-        <div class="btn" onclick="showScreen('heroes')">
-            <div class="icon">🧙</div>
-            <div class="label">هیروها</div>
-        </div>
+      </div>
+      <div class="skills-area">
+        <div class="skills-title">— اسکیل‌ها —</div>
+        <div class="skills-grid" id="b-skills"></div>
+      </div>
+      <button class="gold-btn attack-btn" id="b-attack-btn" onclick="doAttack()">⚔️ حمله!</button>
+      <button class="gold-btn flee-btn" onclick="fleeBattle()">🏃 فرار</button>
+      <div class="battle-log" id="b-log"></div>
     </div>
+  </div>
+
+  <!-- SHOP TAB -->
+  <div id="tab-shop" style="display:none">
+    <div id="shop-content"></div>
+  </div>
+
+  <!-- CRAFT TAB -->
+  <div id="tab-craft" style="display:none">
+    <div id="craft-content"></div>
+  </div>
+
+  <!-- DAILY TAB -->
+  <div id="tab-daily" style="display:none">
+    <div id="daily-content"></div>
+  </div>
 </div>
 
-<div id="select-hero-screen" class="screen">
-    <div class="header"><h1>⚔️ هیرو انتخاب کن</h1></div>
-    <div style="padding:20px">
-        <div class="type-btn" onclick="showHeroesByType('Strength')">💪 Strength Heroes</div>
-        <div class="type-btn" onclick="showHeroesByType('Agility')">🏃 Agility Heroes</div>
-        <div class="type-btn" onclick="showHeroesByType('Intelligence')">🧠 Intelligence Heroes</div>
-        <div id="heroes-list"></div>
-    </div>
+<!-- SELECT HERO SCREEN -->
+<div id="select-screen" class="screen">
+  <div class="topbar"><div class="topbar-title">⚔️ هیرو انتخاب کن</div></div>
+  <div style="display:flex;gap:6px;margin-bottom:10px">
+    <button class="gold-btn" style="flex:1;padding:10px;font-size:12px" onclick="filterHero('Strength')">💪 Strength</button>
+    <button class="gold-btn" style="flex:1;padding:10px;font-size:12px" onclick="filterHero('Agility')">🏃 Agility</button>
+    <button class="gold-btn" style="flex:1;padding:10px;font-size:12px" onclick="filterHero('Intelligence')">🧠 Intel</button>
+  </div>
+  <div id="hero-list"></div>
 </div>
 
-<div id="profile-screen" class="screen">
-    <div class="header"><h1>👤 پروفایل</h1></div>
-    <div style="padding:20px">
-        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
-        <div id="profile-content"></div>
-    </div>
-</div>
-
-<div id="pvp-screen" class="screen">
-    <div class="header"><h1>⚔️ مبارزه PvP</h1></div>
-    <div style="padding:20px">
-        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
-        <div id="pvp-content"></div>
-    </div>
-</div>
-
-<div id="shop-screen" class="screen">
-    <div class="header"><h1>🎒 فروشگاه</h1></div>
-    <div style="padding:20px">
-        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
-        <div id="shop-content"></div>
-    </div>
-</div>
-
-<div id="daily-screen" class="screen">
-    <div class="header"><h1>🎁 جایزه روزانه</h1></div>
-    <div style="padding:20px;text-align:center">
-        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
-        <div id="daily-content"></div>
-    </div>
-</div>
-
-<div id="leaderboard-screen" class="screen">
-    <div class="header"><h1>🏆 لیدربورد</h1></div>
-    <div style="padding:20px">
-        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
-        <div id="leaderboard-content"></div>
-    </div>
-</div>
-
-<div id="heroes-screen" class="screen">
-    <div class="header"><h1>🧙 هیروها</h1></div>
-    <div style="padding:20px">
-        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
-        <div id="all-heroes-content"></div>
-    </div>
+<div class="overlay" id="overlay" onclick="closePopup()"></div>
+<div class="popup panel" id="popup">
+  <h2 id="p-title"></h2>
+  <p id="p-msg"></p>
+  <button class="gold-btn popup-ok" onclick="closePopup()">باشه</button>
 </div>
 
 <script>
-const tg = window.Telegram.WebApp;
-tg.expand();
-tg.setHeaderColor('#0d1117');
+const tg=window.Telegram.WebApp;tg.expand();
 
-const HEROES = {
-    death_knight: {name:"Death Knight",evolved:"Lich King",type:"Strength",hp:620,atk:52,def:8,icon:"💀",skills:["Death Coil","Animate Dead","Death Pact"]},
-    paladin: {name:"Paladin",evolved:"Ashbringer",type:"Strength",hp:600,atk:48,def:12,icon:"⚔️",skills:["Holy Light","Divine Shield","Resurrection"]},
-    far_seer: {name:"Far Seer",evolved:"Warchief",type:"Strength",hp:580,atk:50,def:10,icon:"🌩️",skills:["Chain Lightning","Far Sight","Earthquake"]},
-    beastmaster: {name:"Beastmaster",evolved:"Warlord",type:"Strength",hp:650,atk:55,def:7,icon:"🐗",skills:["Summon Bear","Stampede","War Drums"]},
-    demon_hunter: {name:"Demon Hunter",evolved:"Betrayer",type:"Agility",hp:520,atk:65,def:5,icon:"😈",skills:["Mana Burn","Evasion","Metamorphosis"]},
-    warden: {name:"Warden",evolved:"Shadowblade",type:"Agility",hp:500,atk:68,def:4,icon:"🗡️",skills:["Fan of Knives","Blink","Shadow Strike"]},
-    shadow_hunter: {name:"Shadow Hunter",evolved:"Voodoo Master",type:"Agility",hp:510,atk:60,def:6,icon:"🧿",skills:["Hex","Voodoo","Big Bad Voodoo"]},
-    axe_thrower: {name:"Axe Thrower",evolved:"Berserker",type:"Agility",hp:530,atk:63,def:5,icon:"🪓",skills:["Throw Axe","Berserker Rage","Cleave"]},
-    archmage: {name:"Archmage",evolved:"Arcane Lord",type:"Intelligence",hp:460,atk:75,def:3,icon:"🧙",skills:["Blizzard","Summon Water Elem","Mass Teleport"]},
-    lich: {name:"Lich",evolved:"Lich Overlord",type:"Intelligence",hp:450,atk:78,def:2,icon:"👻",skills:["Frost Nova","Dark Ritual","Death and Decay"]},
-    priestess: {name:"Priestess of Moon",evolved:"Moon Goddess",type:"Intelligence",hp:470,atk:70,def:4,icon:"🌙",skills:["Starfall","Trueshot Aura","Scout"]},
-    prophet: {name:"Prophet",evolved:"Medivh Reborn",type:"Intelligence",hp:455,atk:72,def:3,icon:"🔮",skills:["Raven Form","Force of Nature","Silence"]},
+const HEROES={
+  death_knight:{name:"Death Knight",evolved:"Lich King",type:"Strength",hp:620,atk:52,def:8,icon:"💀",skills:[{name:"Death Coil",mana:30,cooldown:8,effect:"drain",desc:"جان دشمن رو میمکه",dmg:80},{name:"Animate Dead",mana:50,cooldown:15,effect:"heal",desc:"HP بازیابی",dmg:0}]},
+  paladin:{name:"Paladin",evolved:"Ashbringer",type:"Strength",hp:600,atk:48,def:12,icon:"⚔️",skills:[{name:"Holy Light",mana:40,cooldown:10,effect:"heal",desc:"HP بازیابی",dmg:0},{name:"Divine Shield",mana:60,cooldown:20,effect:"shield",desc:"مصون از آسیب",dmg:0}]},
+  far_seer:{name:"Far Seer",evolved:"Warchief",type:"Strength",hp:580,atk:50,def:10,icon:"🌩️",skills:[{name:"Chain Lightning",mana:35,cooldown:8,effect:"stun",desc:"صاعقه زنجیری",dmg:120},{name:"Earthquake",mana:55,cooldown:18,effect:"slow",desc:"کند کردن دشمن",dmg:90}]},
+  beastmaster:{name:"Beastmaster",evolved:"Warlord",type:"Strength",hp:650,atk:55,def:7,icon:"🐗",skills:[{name:"Stampede",mana:40,cooldown:12,effect:"stun",desc:"Stun دشمن",dmg:100},{name:"War Drums",mana:30,cooldown:15,effect:"buff",desc:"+20 ATK",dmg:0}]},
+  demon_hunter:{name:"Demon Hunter",evolved:"Betrayer",type:"Agility",hp:520,atk:65,def:5,icon:"😈",skills:[{name:"Mana Burn",mana:25,cooldown:6,effect:"mana_burn",desc:"سوزاندن مانا",dmg:60},{name:"Metamorphosis",mana:80,cooldown:25,effect:"transform",desc:"تبدیل به دیو",dmg:150}]},
+  warden:{name:"Warden",evolved:"Shadowblade",type:"Agility",hp:500,atk:68,def:4,icon:"🗡️",skills:[{name:"Fan of Knives",mana:35,cooldown:8,effect:"bleed",desc:"خونریزی",dmg:110},{name:"Blink",mana:20,cooldown:10,effect:"dodge",desc:"Dodge حمله بعدی",dmg:0}]},
+  shadow_hunter:{name:"Shadow Hunter",evolved:"Voodoo Master",type:"Agility",hp:510,atk:60,def:6,icon:"🧿",skills:[{name:"Hex",mana:45,cooldown:12,effect:"stun",desc:"Stun دشمن",dmg:0},{name:"Big Bad Voodoo",mana:70,cooldown:20,effect:"heal",desc:"HP زیاد بازیابی",dmg:0}]},
+  axe_thrower:{name:"Axe Thrower",evolved:"Berserker",type:"Agility",hp:530,atk:63,def:5,icon:"🪓",skills:[{name:"Throw Axe",mana:25,cooldown:6,effect:"bleed",desc:"خونریزی",dmg:95},{name:"Berserker Rage",mana:50,cooldown:15,effect:"crit",desc:"ضربه بحرانی",dmg:130}]},
+  archmage:{name:"Archmage",evolved:"Arcane Lord",type:"Intelligence",hp:460,atk:75,def:3,icon:"🧙",skills:[{name:"Blizzard",mana:60,cooldown:12,effect:"slow",desc:"طوفان یخ",dmg:140},{name:"Mass Teleport",mana:80,cooldown:25,effect:"shield",desc:"سپر جادویی",dmg:0}]},
+  lich:{name:"Lich",evolved:"Lich Overlord",type:"Intelligence",hp:450,atk:78,def:2,icon:"👻",skills:[{name:"Frost Nova",mana:45,cooldown:10,effect:"stun",desc:"منجمد کردن",dmg:120},{name:"Death and Decay",mana:90,cooldown:30,effect:"dot",desc:"آسیب مداوم",dmg:160}]},
+  priestess:{name:"Priestess",evolved:"Moon Goddess",type:"Intelligence",hp:470,atk:70,def:4,icon:"🌙",skills:[{name:"Starfall",mana:55,cooldown:12,effect:"aoe",desc:"باران ستاره",dmg:130},{name:"Trueshot",mana:30,cooldown:8,effect:"buff",desc:"+15 ATK",dmg:80}]},
+  prophet:{name:"Prophet",evolved:"Medivh Reborn",type:"Intelligence",hp:455,atk:72,def:3,icon:"🔮",skills:[{name:"Force of Nature",mana:50,cooldown:12,effect:"summon",desc:"درختان جنگجو",dmg:110},{name:"Silence",mana:40,cooldown:15,effect:"silence",desc:"بستن اسکیل دشمن",dmg:0}]},
 };
+const BASE_ITEMS={sword:{name:"Sword ⚔️",atk:15,def:0,price:200},shield:{name:"Shield 🛡️",atk:0,def:20,price:250},armor:{name:"Armor 🥋",atk:0,def:15,price:180},boots:{name:"Boots 👢",atk:5,def:5,price:150},staff:{name:"Staff 🪄",atk:25,def:0,price:300},cloak:{name:"Cloak 🔥",atk:10,def:10,price:220},ring:{name:"Ring 💍",atk:8,def:8,price:180},gem:{name:"Gem 💎",atk:12,def:12,price:280}};
+const CRAFTED={holy_sword:{name:"Holy Sword ✨⚔️",atk:40,def:10,recipe:["sword","gem"]},dragon_armor:{name:"Dragon Armor 🐉",atk:5,def:50,recipe:["armor","cloak"]},arcane_staff:{name:"Arcane Staff 🌟",atk:60,def:0,recipe:["staff","gem"]},thunder_boots:{name:"Thunder Boots ⚡",atk:15,def:15,recipe:["boots","ring"]},shadow_cloak:{name:"Shadow Cloak 🌑",atk:20,def:30,recipe:["cloak","shield"]},demon_blade:{name:"Demon Blade 😈⚔️",atk:70,def:5,recipe:["sword","staff"]},holy_armor:{name:"Holy Armor 🛡️✨",atk:10,def:60,recipe:["armor","shield"]},arcane_ring:{name:"Arcane Ring 💍🌟",atk:25,def:25,recipe:["ring","gem"]}};
 
-const ITEMS = {
-    sword: {name:"Sword of Arthas ⚔️",atk:15,def:0,price:200},
-    shield: {name:"Aegis Shield 🛡️",atk:0,def:20,price:250},
-    armor: {name:"Plate Armor 🥋",atk:0,def:15,price:180},
-    boots: {name:"Boots of Speed 👢",atk:5,def:5,price:150},
-    staff: {name:"Staff of Wizardry 🪄",atk:25,def:0,price:300},
-    cloak: {name:"Cloak of Flames 🔥",atk:10,def:10,price:220},
-};
+let P=JSON.parse(localStorage.getItem('wc4')||'null');
+let BS={active:false,myTurn:false,myHp:0,myMaxHp:0,enHp:0,enMaxHp:0,mana:100,skillUsed:[false,false],myHero:null,enHero:null};
+let socket=null;
 
-let player = JSON.parse(localStorage.getItem('wc_player') || 'null');
-let battleState = null;
+function save(){localStorage.setItem('wc4',JSON.stringify(P));renderHome()}
+function gS(id){return document.getElementById(id)}
 
-function savePlayer() {
-    localStorage.setItem('wc_player', JSON.stringify(player));
-    updateHeader();
-}
-
-function updateHeader() {
-    if (player) {
-        const h = HEROES[player.hero_id];
-        const name = player.level >= 6 ? h.evolved : h.name;
-        document.getElementById('coins-display').textContent = `💰 ${player.coins} سکه`;
-        document.getElementById('hero-display').textContent = `${h.icon} ${name} | لول ${player.level}/25`;
-    }
-}
-
-function showMain() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('main-screen').style.display = 'block';
-    document.getElementById('select-hero-screen').classList.remove('active');
-}
-
-function showScreen(name) {
-    if (!player) {
-        document.getElementById('main-screen').style.display = 'none';
-        document.getElementById('select-hero-screen').classList.add('active');
-        return;
-    }
-    document.getElementById('main-screen').style.display = 'none';
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(name+'-screen').classList.add('active');
-    if (name === 'profile') loadProfile();
-    if (name === 'pvp') loadPvp();
-    if (name === 'shop') loadShop();
-    if (name === 'daily') loadDaily();
-    if (name === 'leaderboard') loadLeaderboard();
-    if (name === 'heroes') loadAllHeroes();
-}
-
-function showHeroesByType(type) {
-    const list = document.getElementById('heroes-list');
-    const filtered = Object.entries(HEROES).filter(([k,v]) => v.type === type);
-    list.innerHTML = filtered.map(([id, h]) => `
-        <div class="hero-card" onclick="selectHero('${id}')">
-            <h3>${h.icon} ${h.name}</h3>
-            <div style="color:#8b949e;font-size:12px">لول 6: ${h.evolved}</div>
-            <div class="stats">
-                <div class="stat">❤️ <span>${h.hp}</span></div>
-                <div class="stat">⚔️ <span>${h.atk}</span></div>
-                <div class="stat">🛡️ <span>${h.def}</span></div>
-            </div>
-            <div style="margin-top:8px;font-size:12px;color:#8b949e">
-                ${h.skills.map(s => `• ${s}`).join(' | ')}
-            </div>
+function renderHome(){
+  if(!P){gS('hero-card').innerHTML='<div style="text-align:center;padding:20px"><div style="font-size:40px;margin-bottom:10px">⚔️</div><div style="color:#5a4a2a;margin-bottom:15px">هیرو انتخاب نشده</div><button class="gold-btn" style="padding:10px 20px;font-size:14px" onclick="openSelectHero()">🧙 انتخاب هیرو</button></div>';return}
+  const h=HEROES[P.hero_id];
+  const name=P.level>=6?h.evolved:h.name;
+  const xpN=P.level*150;
+  gS('top-coins').textContent=`💰 ${P.coins}`;
+  gS('my-sprite').textContent=h.icon;
+  gS('my-fname').textContent=name;
+  gS('hero-card').innerHTML=`
+    <div class="hero-card-inner">
+      <div class="hero-portrait">${h.icon}</div>
+      <div class="hero-stats-col">
+        <div class="hero-name-big">${name} ${P.level>=6?'⭐':''}</div>
+        <div class="hero-sub">${h.type} | لول ${P.level}/25</div>
+        <div class="bar-row">
+          <div class="bar-label"><span style="color:#cc4444">❤️ ${P.hp}/${P.max_hp}</span><span style="color:#3a1a1a">${Math.round(P.hp/P.max_hp*100)}%</span></div>
+          <div class="bar-track"><div class="bar-fill hp-bar" style="width:${P.hp/P.max_hp*100}%"></div></div>
         </div>
-    `).join('');
-}
-
-function selectHero(id) {
-    const h = HEROES[id];
-    const uid = tg.initDataUnsafe?.user?.id || Date.now();
-    player = {
-        user_id: uid,
-        hero_id: id,
-        level: 1,
-        xp: 0,
-        hp: h.hp,
-        max_hp: h.hp,
-        atk: h.atk,
-        def: h.def,
-        coins: 500,
-        wins: 0,
-        losses: 0,
-        items: [],
-        last_daily: 0,
-        code: Math.random().toString(36).substr(2,8).toUpperCase()
-    };
-    savePlayer();
-    showMain();
-    alert(`✅ ${h.icon} ${h.name} انتخاب شد!\n💰 500 سکه شروع`);
-}
-
-function loadProfile() {
-    const h = HEROES[player.hero_id];
-    const name = player.level >= 6 ? h.evolved : h.name;
-    const xpNeed = player.level * 150;
-    const xpPct = Math.min(100, (player.xp / xpNeed) * 100);
-    const hpPct = Math.min(100, (player.hp / player.max_hp) * 100);
-    document.getElementById('profile-content').innerHTML = `
-        <div class="hero-card">
-            <h3>${h.icon} ${name} ${player.level >= 6 ? '⭐' : ''}</h3>
-            <div style="margin:10px 0">
-                <div style="display:flex;justify-content:space-between;font-size:13px">
-                    <span>❤️ HP: ${player.hp}/${player.max_hp}</span>
-                    <span>${Math.round(hpPct)}%</span>
-                </div>
-                <div class="progress-bar"><div class="progress-fill hp-fill" style="width:${hpPct}%"></div></div>
-            </div>
-            <div style="margin:10px 0">
-                <div style="display:flex;justify-content:space-between;font-size:13px">
-                    <span>✨ XP: ${player.xp}/${xpNeed}</span>
-                    <span>لول ${player.level}/25</span>
-                </div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${xpPct}%"></div></div>
-            </div>
-            <div class="stats" style="flex-wrap:wrap;gap:10px">
-                <div class="stat">⚔️ ATK: <span>${player.atk}</span></div>
-                <div class="stat">🛡️ DEF: <span>${player.def}</span></div>
-                <div class="stat">🏆 برد: <span>${player.wins}</span></div>
-                <div class="stat">💀 باخت: <span>${player.losses}</span></div>
-                <div class="stat">💰 سکه: <span>${player.coins}</span></div>
-            </div>
-            <div style="margin-top:10px;font-size:12px;color:#8b949e">🔑 کد: ${player.code}</div>
-            <div style="margin-top:10px;font-size:12px;color:#f0c040">
-                🎯 اسکیل‌ها: ${h.skills.join(' | ')}
-            </div>
+        <div class="bar-row">
+          <div class="bar-label"><span style="color:#5a4a2a">✨ XP ${P.xp}/${xpN}</span></div>
+          <div class="bar-track"><div class="bar-fill xp-bar" style="width:${Math.min(100,P.xp/xpN*100)}%"></div></div>
         </div>
-        ${player.hp < player.max_hp ? `<button class="daily-btn" onclick="restoreHp()" style="background:linear-gradient(135deg,#1a4434,#0d6e45)">💊 استراحت (بازگرداندن HP) - 50 سکه</button>` : ''}
-    `;
-}
-
-function restoreHp() {
-    if (player.coins < 50) { alert('سکه کافی نداری!'); return; }
-    player.coins -= 50;
-    player.hp = player.max_hp;
-    savePlayer();
-    loadProfile();
-    alert('💊 HP کامل شد!');
-}
-
-function loadPvp() {
-    const h = HEROES[player.hero_id];
-    document.getElementById('pvp-content').innerHTML = `
-        <div class="battle-area">
-            <h3 style="color:#f0c040;margin-bottom:15px">⚔️ آماده مبارزه؟</h3>
-            <p style="color:#8b949e;margin-bottom:15px">یه حریف رندوم پیدا میکنیم</p>
-            <div style="font-size:40px;margin:20px 0">${h.icon}</div>
-            <div style="font-size:14px;margin-bottom:15px">
-                ❤️ HP: ${player.hp}/${player.max_hp} | ⚔️ ATK: ${player.atk} | 🛡️ DEF: ${player.def}
-            </div>
-            <button class="attack-btn" onclick="startBattle()">⚔️ جنگ!</button>
+        <div class="stats-row">
+          <div class="stat-box">⚔️ <span>${P.atk}</span></div>
+          <div class="stat-box">🛡️ <span>${P.def}</span></div>
+          <div class="stat-box">🏆 <span>${P.wins}</span></div>
+          <div class="stat-box">💀 <span>${P.losses}</span></div>
         </div>
-        <div id="battle-log"></div>
-    `;
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#3a2a15">
+      ${h.skills.map((s,i)=>`<div style="margin:3px 0;color:${i===0?'#8b6914':P.level>=6?'#44aa44':'#2a2010'}">• ${s.name}${i===1&&P.level<6?' 🔒':''}: ${s.desc}</div>`).join('')}
+    </div>
+    ${P.hp<P.max_hp?`<button class="gold-btn" style="width:100%;padding:8px;margin-top:10px;font-size:12px" onclick="restHp()">💊 استراحت (50 سکه)</button>`:''}
+  `;
 }
 
-function startBattle() {
-    if (player.hp <= 0) { alert('اول HP خودت رو بازگردون!'); return; }
-    
-    const enemyIds = Object.keys(HEROES).filter(k => k !== player.hero_id);
-    const enemyId = enemyIds[Math.floor(Math.random() * enemyIds.length)];
-    const eh = HEROES[enemyId];
-    const enemyLevel = Math.max(1, player.level + Math.floor(Math.random()*3) - 1);
-    
-    battleState = {
-        enemy_id: enemyId,
-        enemy_name: enemyLevel >= 6 ? eh.evolved : eh.name,
-        enemy_icon: eh.icon,
-        enemy_hp: eh.hp + (enemyLevel * 20),
-        enemy_max_hp: eh.hp + (enemyLevel * 20),
-        enemy_atk: eh.atk + (enemyLevel * 3),
-        enemy_def: eh.def + enemyLevel,
-        enemy_level: enemyLevel,
-        round: 1,
-        log: []
-    };
-    
-    renderBattle();
+function restHp(){if(P.coins<50){popup('❌','سکه کافی نداری!');return}P.coins-=50;P.hp=P.max_hp;save()}
+
+function showTab(t){
+  ['home','pvp','shop','craft','daily'].forEach(x=>gS('tab-'+x).style.display='none');
+  gS('tab-'+t).style.display='block';
+  if(t==='pvp'&&!BS.active)loadPvpHome();
+  if(t==='shop')loadShop();
+  if(t==='craft')loadCraft();
+  if(t==='daily')loadDaily();
 }
 
-function renderBattle() {
-    if (!battleState) return;
-    const h = HEROES[player.hero_id];
-    const myHpPct = Math.max(0, (player.hp / player.max_hp) * 100);
-    const enemyHpPct = Math.max(0, (battleState.enemy_hp / battleState.enemy_max_hp) * 100);
-    
-    document.getElementById('pvp-content').innerHTML = `
-        <div class="battle-area">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-                <div style="text-align:center;flex:1">
-                    <div style="font-size:35px">${h.icon}</div>
-                    <div style="font-size:12px;color:#f0c040">${player.level >= 6 ? h.evolved : h.name}</div>
-                    <div class="hp-bar">
-                        <div class="label">❤️ ${player.hp}/${player.max_hp}</div>
-                        <div class="progress-bar"><div class="progress-fill hp-fill" style="width:${myHpPct}%"></div></div>
-                    </div>
-                </div>
-                <div style="font-size:24px;color:#f0c040">VS</div>
-                <div style="text-align:center;flex:1">
-                    <div style="font-size:35px">${battleState.enemy_icon}</div>
-                    <div style="font-size:12px;color:#ff4444">${battleState.enemy_name} (${battleState.enemy_level})</div>
-                    <div class="hp-bar">
-                        <div class="label">❤️ ${battleState.enemy_hp}/${battleState.enemy_max_hp}</div>
-                        <div class="progress-bar"><div class="progress-fill enemy-hp" style="width:${enemyHpPct}%"></div></div>
-                    </div>
-                </div>
-            </div>
-            <div style="margin-top:15px">
-                <button class="attack-btn" onclick="doAttack('normal')">⚔️ حمله</button>
-                <button class="attack-btn" onclick="doAttack('skill')" style="background:linear-gradient(135deg,#1a2d8b,#2d4fcc)">✨ اسکیل</button>
-                <button class="attack-btn" onclick="fleeBattle()" style="background:linear-gradient(135deg,#2d2d2d,#555)">🏃 فرار</button>
-            </div>
+function loadPvpHome(){
+  if(!P){gS('pvp-content').innerHTML='<div class="panel" style="padding:15px;text-align:center;margin-bottom:10px"><button class="gold-btn" style="padding:10px 20px" onclick="openSelectHero()">هیرو انتخاب کن</button></div>';gS('battle-ui').style.display='none';return}
+  const h=HEROES[P.hero_id];
+  gS('pvp-content').innerHTML=`
+    <div class="panel" style="padding:15px;text-align:center;margin-bottom:10px">
+      <div style="font-size:50px;margin:10px 0">${h.icon}</div>
+      <div style="color:#c8a84b;font-size:14px;margin-bottom:5px">${P.level>=6?h.evolved:h.name}</div>
+      <div class="stats-row" style="justify-content:center;margin-bottom:10px">
+        <div class="stat-box">❤️ <span>${P.hp}/${P.max_hp}</span></div>
+        <div class="stat-box">⚔️ <span>${P.atk}</span></div>
+        <div class="stat-box">🛡️ <span>${P.def}</span></div>
+      </div>
+      ${P.hp<=0?'<div style="color:#cc4444;margin-bottom:10px;font-size:12px">❌ HP نداری!</div>':''}
+      <button class="gold-btn" style="width:100%;padding:12px;font-size:14px" onclick="joinPvp()" ${P.hp<=0?'disabled':''}>⚔️ جستجوی حریف</button>
+    </div>`;
+  gS('battle-ui').style.display='none';
+}
+
+function joinPvp(){
+  if(!socket)initSocket();
+  socket.emit('join_pvp');
+  gS('pvp-content').innerHTML=`<div class="panel" style="padding:20px;text-align:center;margin-bottom:10px"><div style="font-size:40px;margin:15px 0">⏳</div><div style="color:#c8a84b;margin-bottom:10px">دنبال حریف هم‌سطح...</div><button class="gold-btn" style="padding:8px 20px;font-size:12px" onclick="cancelQ()">❌ لغو</button></div>`;
+  gS('battle-ui').style.display='none';
+}
+function cancelQ(){if(socket)socket.emit('cancel_queue');loadPvpHome()}
+
+function initSocket(){
+  socket=io();
+  socket.on('connect',()=>{if(P)socket.emit('join_game',{hero_id:P.hero_id,player:{level:P.level,hp:P.hp,max_hp:P.max_hp,atk:P.atk,def:P.def,mana:100,coins:P.coins,items:P.items||[]}})});
+  socket.on('battle_start',d=>{
+    BS={active:true,myTurn:d.your_turn,myHp:d.my_hp,myMaxHp:d.my_max_hp,enHp:d.enemy_hp,enMaxHp:d.enemy_max_hp,mana:d.my_mana||100,skillUsed:[false,false],myHero:d.my_hero,enHero:d.enemy_hero,myLevel:d.my_level,enLevel:d.enemy_level};
+    gS('pvp-content').innerHTML='';
+    gS('battle-ui').style.display='block';
+    gS('my-sprite').textContent=d.my_hero.icon;gS('my-fname').textContent=d.my_level>=6?d.my_hero.evolved:d.my_hero.name;
+    gS('enemy-sprite').textContent=d.enemy_hero.icon;gS('enemy-fname').textContent=d.enemy_level>=6?d.enemy_hero.evolved:d.enemy_hero.name;
+    gS('b-my-maxhp').textContent=d.my_max_hp;gS('b-en-maxhp').textContent=d.enemy_max_hp;
+    gS('b-log').innerHTML='';addLog('⚔️ جنگ شروع شد!','sys');
+    renderBSkills(d.my_hero,d.my_level);updateBUI();showTab('pvp');
+  });
+  socket.on('attack_result',d=>{
+    BS.myHp=d.my_hp;BS.enHp=d.enemy_hp;BS.myTurn=d.your_turn;updateBUI();
+    addLog(`⚔️ ${d.dmg} دمیج`,'dmg');
+    if(d.effect==='hit'){animF('my','hit');showDmg(d.dmg,true)}else{animF('enemy','hit');showDmg(d.dmg,false)}
+  });
+  socket.on('skill_result',d=>{
+    BS.myHp=d.my_hp;BS.enHp=d.enemy_hp;BS.mana=d.my_mana;BS.myTurn=d.your_turn;BS.skillUsed[d.skill_idx]=true;
+    updateBUI();renderBSkills(BS.myHero,BS.myLevel);
+    addLog(`✨ ${d.skill_name}: ${d.effect_msg}`,'skl');
+    if(d.dmg>0){animF('enemy','hit');showDmg(d.dmg,false)}
+    startCD(d.skill_idx,d.cooldown);
+  });
+  socket.on('enemy_skill',d=>{
+    BS.myHp=d.my_hp;BS.enHp=d.enemy_hp;BS.myTurn=d.your_turn;updateBUI();
+    addLog(`💥 ${d.skill_name}: ${d.effect_msg}`,'dmg');
+    animF('my','hit');if(d.dmg>0)showDmg(d.dmg,true);
+  });
+  socket.on('not_your_turn',()=>addLog('نوبت تو نیست!','sys'));
+  socket.on('skill_failed',d=>{
+    const msgs={cooldown:`کولدان! ${d.remaining}s`,no_mana:'مانا کافی نداری!',level_required:'لول 6 لازمه!',silenced:'ساکت شدی!'};
+    addLog(msgs[d.reason]||'خطا','sys');
+  });
+  socket.on('battle_end',d=>{
+    BS.active=false;
+    if(d.result==='win'){P.wins++;P.coins+=d.reward;P.xp+=50+P.level*10;if(P.xp>=P.level*150&&P.level<25){P.level++;P.xp=0;P.max_hp+=30;P.atk+=3;P.def+=1;P.hp=P.max_hp}}
+    else{P.losses++;P.hp=Math.max(1,P.hp)}
+    save();
+    setTimeout(()=>{loadPvpHome();popup(d.result==='win'?'🏆 بردی!':'💀 باختی!',d.result==='win'?`+${d.reward} سکه!`:'دفعه بعد!')},700);
+  });
+  socket.on('enemy_fled',()=>{P.wins++;P.coins+=50;save();loadPvpHome();popup('🏆','دشمن فرار کرد! +50 سکه')});
+  socket.on('fled',()=>{P.losses++;save();loadPvpHome()});
+  socket.on('queue_cancelled',()=>loadPvpHome());
+}
+
+function renderBSkills(hero,lv){
+  gS('b-skills').innerHTML=hero.skills.map((s,i)=>{
+    const locked=i===1&&lv<6;const used=BS.skillUsed[i];
+    return`<div class="gold-btn skill-btn${locked?' locked':used?' used':''}" onclick="${!locked&&!used?`useSkill(${i})`:''}">
+      <div class="skill-n">${s.name}</div><div class="skill-d">${s.desc}</div>
+      <div class="skill-c">💧${s.mana} ⏱️${s.cooldown}s</div>
+      ${locked?'<div style="color:#3a2a15;font-size:10px">🔒 لول 6</div>':''}
+      ${used?'<div style="color:#3a2a15;font-size:10px">✅</div>':''}
+      <div class="cd-overlay" id="cd${i}" style="display:none">0</div>
+    </div>`;
+  }).join('');
+}
+function startCD(i,s){const el=gS('cd'+i);if(!el)return;el.style.display='flex';let r=s;el.textContent=r;const t=setInterval(()=>{r--;el.textContent=r;if(r<=0){clearInterval(t);el.style.display='none'}},1000)}
+function updateBUI(){
+  const mp=Math.max(0,BS.myHp/BS.myMaxHp*100);const ep=Math.max(0,BS.enHp/BS.enMaxHp*100);const ma=BS.mana;
+  gS('b-my-hp').textContent=BS.myHp;gS('b-my-hp-bar').style.width=mp+'%';
+  gS('b-en-hp').textContent=BS.enHp;gS('b-en-hp-bar').style.width=ep+'%';
+  gS('b-my-mana').textContent=ma;gS('b-my-mana-bar').style.width=ma+'%';
+  const tb=gS('turn-bar');const ab=gS('b-attack-btn');
+  if(BS.myTurn){tb.textContent='🟢 نوبت توئه!';tb.className='turn-bar my-turn';ab.disabled=false}
+  else{tb.textContent='🔴 نوبت دشمنه...';tb.className='turn-bar enemy-turn';ab.disabled=true}
+}
+function animF(side,type){
+  const el=gS(side==='my'?'my-fighter':'enemy-fighter');
+  el.classList.add(type);setTimeout(()=>el.classList.remove(type),400);
+}
+function doAttack(){if(!BS.myTurn||!socket)return;animF('my','attacking');socket.emit('attack')}
+function useSkill(i){if(!BS.myTurn||!socket)return;if(BS.skillUsed[i]){addLog('قبلاً استفاده شده!','sys');return}socket.emit('use_skill',{skill_idx:i})}
+function fleeBattle(){if(socket)socket.emit('flee_battle')}
+function showDmg(d,isMe){
+  const el=document.createElement('div');el.className='dmg-float';
+  el.textContent=`-${d}`;el.style.color=isMe?'#ff4444':'#ff8844';
+  el.style.left=(isMe?'15%':'55%');el.style.top='200px';
+  document.body.appendChild(el);setTimeout(()=>el.remove(),900);
+}
+function addLog(m,t){const l=gS('b-log');const e=document.createElement('div');e.className=`log-line ${t}`;e.textContent=m;l.appendChild(e);l.scrollTop=l.scrollHeight}
+
+function loadShop(){
+  gS('shop-content').innerHTML=`<div style="color:#5a4a2a;font-size:12px;margin-bottom:8px">💰 سکه: ${P?.coins||0}</div>`+
+  Object.entries(BASE_ITEMS).map(([id,it])=>{
+    const owned=(P?.items||[]).includes(id);
+    return`<div class="panel item-row" style="margin-bottom:8px">
+      <div><div class="item-name">${it.name}</div><div class="item-stats">${it.atk>0?`⚔️+${it.atk} `:''}${it.def>0?`🛡️+${it.def}`:''}</div><div class="item-price">💰${it.price}</div></div>
+      ${owned?'<span style="color:#44aa44">✅</span>':`<button class="gold-btn" style="padding:7px 12px;font-size:12px" onclick="buyItem('${id}')">خرید</button>`}
+    </div>`;
+  }).join('');
+}
+function buyItem(id){
+  if(!P){popup('❌','هیرو انتخاب کن!');return}
+  const it=BASE_ITEMS[id];
+  if(P.coins<it.price){popup('❌','سکه کافی نداری!');return}
+  if((P.items||[]).includes(id)){popup('❌','قبلاً خریدی!');return}
+  P.coins-=it.price;if(!P.items)P.items=[];P.items.push(id);P.atk+=it.atk;P.def+=it.def;
+  save();loadShop();popup('✅',`${it.name} خریدی!`);
+}
+function loadCraft(){
+  if(!P){gS('craft-content').innerHTML='<div style="color:#5a4a2a;text-align:center;padding:20px">هیرو انتخاب کن!</div>';return}
+  gS('craft-content').innerHTML=`<div style="color:#5a4a2a;font-size:11px;margin-bottom:8px">آیتم‌هایت: ${(P.items||[]).join(', ')||'هیچی'}</div>`+
+  Object.entries(CRAFTED).map(([id,it])=>{
+    const can=it.recipe.every(r=>(P.items||[]).includes(r));
+    const owned=(P.crafted||[]).includes(id);
+    return`<div class="panel" style="padding:12px;margin-bottom:8px">
+      <div style="color:#c8a84b;font-size:13px;font-weight:bold">${it.name}</div>
+      <div style="color:#5a4a2a;font-size:11px;margin:3px 0">نیاز: ${it.recipe.join(' + ')}</div>
+      <div style="color:#5a4a2a;font-size:11px">${it.atk>0?`⚔️+${it.atk} `:''}${it.def>0?`🛡️+${it.def}`:''}</div>
+      <div style="margin-top:8px">${owned?'<span style="color:#44aa44;font-size:12px">✅ ساخته شده</span>':can?`<button class="gold-btn" style="padding:7px 14px;font-size:12px" onclick="craftItem('${id}')">⚗️ بساز</button>`:'<span style="color:#3a2a15;font-size:11px">❌ کافی نیست</span>'}</div>
+    </div>`;
+  }).join('');
+}
+function craftItem(id){
+  const it=CRAFTED[id];
+  if(!it.recipe.every(r=>(P.items||[]).includes(r))){popup('❌','آیتم کافی نداری!');return}
+  it.recipe.forEach(r=>{P.items=P.items.filter(x=>x!==r);P.atk-=BASE_ITEMS[r].atk;P.def-=BASE_ITEMS[r].def});
+  if(!P.crafted)P.crafted=[];P.crafted.push(id);P.atk+=it.atk;P.def+=it.def;
+  save();loadCraft();popup('✅ ساخته شد!',`${it.name}`);
+}
+function loadDaily(){
+  const now=Date.now();const last=P?.last_daily||0;const ready=now-last>=86400000;
+  gS('daily-content').innerHTML=`<div class="panel" style="padding:20px;text-align:center">
+    <div style="font-size:50px;margin:15px 0">${ready?'🎁':'⏰'}</div>
+    <div style="color:#c8a84b;font-size:16px;margin-bottom:10px">${ready?'جایزه روزانه آماده!':'قبلاً گرفتی!'}</div>
+    ${ready?`<button class="gold-btn" style="width:100%;padding:12px;font-size:14px" onclick="claimDaily()">🎁 دریافت (100-1000 سکه)</button>`:`<div style="color:#5a4a2a;font-size:13px">${Math.floor((86400000-(now-last))/3600000)} ساعت دیگه</div>`}
+  </div>`;
+}
+function claimDaily(){
+  if(!P){popup('❌','هیرو انتخاب کن!');return}
+  const r=Math.floor(Math.random()*900)+100;P.coins+=r;P.last_daily=Date.now();save();loadDaily();popup('🎁 جایزه!',`+${r} سکه!`);
+}
+
+function openSelectHero(){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));gS('select-screen').classList.add('active');filterHero('Strength')}
+function filterHero(type){
+  gS('hero-list').innerHTML=Object.entries(HEROES).filter(([k,v])=>v.type===type).map(([id,h])=>`
+    <div class="panel" style="padding:12px;margin-bottom:8px;cursor:pointer" onclick="pickHero('${id}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:35px">${h.icon}</div>
+        <div>
+          <div style="color:#f0c040;font-size:14px;font-weight:bold">${h.name}</div>
+          <div style="color:#5a4a2a;font-size:11px">لول 6: ${h.evolved} ⭐</div>
+          <div class="stats-row" style="margin-top:5px">
+            <div class="stat-box">❤️ <span>${h.hp}</span></div>
+            <div class="stat-box">⚔️ <span>${h.atk}</span></div>
+            <div class="stat-box">🛡️ <span>${h.def}</span></div>
+          </div>
         </div>
-        <div id="battle-log" style="max-height:150px;overflow-y:auto;padding:10px;background:#1a1f2e;border-radius:8px;margin-top:10px;font-size:13px">
-            ${battleState.log.slice(-5).map(l => `<div style="padding:3px 0;border-bottom:1px solid #21262d">${l}</div>`).join('')}
-        </div>
-    `;
+      </div>
+      <div style="margin-top:8px">${h.skills.map((s,i)=>`<div style="font-size:10px;color:${i===0?'#8b6914':'#3a2a15'};margin-top:2px">• ${s.name}${i===1?' (لول 6)':''}: ${s.desc}</div>`).join('')}</div>
+    </div>`).join('');
+}
+function pickHero(id){
+  const h=HEROES[id];const uid=tg.initDataUnsafe?.user?.id||Date.now();
+  P={user_id:uid,hero_id:id,level:1,xp:0,hp:h.hp,max_hp:h.hp,atk:h.atk,def:h.def,coins:500,wins:0,losses:0,items:[],crafted:[],last_daily:0,code:Math.random().toString(36).substr(2,8).toUpperCase()};
+  save();document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));gS('main-screen').classList.add('active');showTab('home');popup('✅ انتخاب شد!',`${h.icon} ${h.name}\n💰 500 سکه شروع`);
 }
 
-function doAttack(type) {
-    if (!battleState) return;
-    
-    let myDmg = Math.max(1, player.atk - battleState.enemy_def + Math.floor(Math.random()*10) - 3);
-    if (type === 'skill') myDmg = Math.floor(myDmg * 1.5);
-    
-    let enemyDmg = Math.max(1, battleState.enemy_atk - player.def + Math.floor(Math.random()*8) - 3);
-    
-    battleState.enemy_hp -= myDmg;
-    battleState.log.push(`🔵 تو ${myDmg} ضربه زدی!`);
-    
-    if (battleState.enemy_hp <= 0) {
-        endBattle(true);
-        return;
-    }
-    
-    player.hp -= enemyDmg;
-    battleState.log.push(`🔴 دشمن ${enemyDmg} ضربه زد!`);
-    battleState.round++;
-    
-    if (player.hp <= 0) {
-        player.hp = 0;
-        endBattle(false);
-        return;
-    }
-    
-    savePlayer();
-    renderBattle();
-}
+function popup(t,m){gS('p-title').textContent=t;gS('p-msg').textContent=m;gS('popup').classList.add('active');gS('overlay').classList.add('active')}
+function closePopup(){gS('popup').classList.remove('active');gS('overlay').classList.remove('active')}
 
-function endBattle(won) {
-    battleState = null;
-    if (won) {
-        const reward = Math.floor(Math.random() * 150) + 50;
-        const xpGain = 50 + player.level * 10;
-        player.coins += reward;
-        player.wins++;
-        player.xp += xpGain;
-        if (player.xp >= player.level * 150 && player.level < 25) {
-            player.level++;
-            player.xp = 0;
-            player.max_hp += 30;
-            player.hp = player.max_hp;
-            player.atk += 3;
-            player.def += 1;
-            savePlayer();
-            alert(`🏆 بردی! +${reward} سکه +${xpGain} XP\n⬆️ لول آپ! الان لول ${player.level}`);
-        } else {
-            savePlayer();
-            alert(`🏆 بردی! +${reward} سکه +${xpGain} XP`);
-        }
-    } else {
-        player.losses++;
-        savePlayer();
-        alert('💀 باختی! برو HP خودت رو بازگردون.');
-    }
-    showMain();
-}
-
-function fleeBattle() {
-    battleState = null;
-    player.losses++;
-    savePlayer();
-    alert('🏃 فرار کردی!');
-    showMain();
-}
-
-function loadShop() {
-    document.getElementById('shop-content').innerHTML = Object.entries(ITEMS).map(([id, item]) => {
-        const owned = player.items.includes(id);
-        return `
-            <div class="item-card">
-                <div>
-                    <div style="font-weight:bold">${item.name}</div>
-                    <div style="font-size:12px;color:#8b949e">
-                        ${item.atk > 0 ? `⚔️ +${item.atk} ATK ` : ''}${item.def > 0 ? `🛡️ +${item.def} DEF` : ''}
-                    </div>
-                    <div style="color:#f0c040;font-size:13px">💰 ${item.price} سکه</div>
-                </div>
-                ${owned ? '<span style="color:#00ff00">✅ داری</span>' : 
-                `<button class="buy-btn" onclick="buyItem('${id}')">خرید</button>`}
-            </div>
-        `;
-    }).join('');
-}
-
-function buyItem(id) {
-    const item = ITEMS[id];
-    if (player.coins < item.price) { alert('سکه کافی نداری!'); return; }
-    if (player.items.includes(id)) { alert('قبلاً خریدی!'); return; }
-    player.coins -= item.price;
-    player.items.push(id);
-    player.atk += item.atk;
-    player.def += item.def;
-    savePlayer();
-    loadShop();
-    alert(`✅ ${item.name} خریدی!`);
-}
-
-function loadDaily() {
-    const now = Date.now();
-    const last = player.last_daily || 0;
-    const diff = now - last;
-    const ready = diff >= 86400000;
-    
-    if (ready) {
-        document.getElementById('daily-content').innerHTML = `
-            <div style="font-size:60px;margin:20px 0">🎁</div>
-            <h2 style="color:#f0c040">جایزه روزانه آماده‌ست!</h2>
-            <p style="color:#8b949e;margin:10px 0">بین 100 تا 1000 سکه میگیری</p>
-            <button class="daily-btn" onclick="claimDaily()">🎁 دریافت جایزه!</button>
-        `;
-    } else {
-        const remaining = 86400000 - diff;
-        const h = Math.floor(remaining / 3600000);
-        const m = Math.floor((remaining % 3600000) / 60000);
-        document.getElementById('daily-content').innerHTML = `
-            <div style="font-size:60px;margin:20px 0">⏰</div>
-            <h2 style="color:#8b949e">قبلاً گرفتی!</h2>
-            <p style="color:#8b949e;margin:10px 0">${h} ساعت و ${m} دقیقه دیگه برگرد</p>
-        `;
-    }
-}
-
-function claimDaily() {
-    const reward = Math.floor(Math.random() * 900) + 100;
-    player.coins += reward;
-    player.last_daily = Date.now();
-    savePlayer();
-    alert(`🎁 ${reward} سکه گرفتی!`);
-    loadDaily();
-}
-
-function loadLeaderboard() {
-    const mockData = [
-        {name:"Death Knight 💀", level:15, wins:42},
-        {name:"Archmage 🧙", level:12, wins:38},
-        {name:"Demon Hunter 😈", level:10, wins:31},
-        {name:"Lich 👻", level:9, wins:28},
-        {name:"تو 🌟", level:player.level, wins:player.wins},
-    ].sort((a,b) => b.wins - a.wins);
-    
-    const medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
-    document.getElementById('leaderboard-content').innerHTML = mockData.map((p,i) => `
-        <div class="leaderboard-item">
-            <span>${medals[i]} ${p.name}</span>
-            <span style="color:#f0c040">لول ${p.level} | ${p.wins} برد</span>
-        </div>
-    `).join('');
-}
-
-function loadAllHeroes() {
-    document.getElementById('all-heroes-content').innerHTML = Object.entries(HEROES).map(([id,h]) => `
-        <div class="hero-card">
-            <h3>${h.icon} ${h.name} <span style="color:#8b949e;font-size:13px">(${h.type})</span></h3>
-            <div style="color:#f0c040;font-size:12px">لول 6: ${h.evolved} ⭐</div>
-            <div class="stats">
-                <div class="stat">❤️ <span>${h.hp}</span></div>
-                <div class="stat">⚔️ <span>${h.atk}</span></div>
-                <div class="stat">🛡️ <span>${h.def}</span></div>
-            </div>
-        </div>
-    `).join('');
-}
-
-updateHeader();
-if (!player) {
-    document.getElementById('main-screen').style.display = 'none';
-    document.getElementById('select-hero-screen').classList.add('active');
-}
+renderHome();showTab('home');
+if(!P){setTimeout(openSelectHero,500)}
+if(socket===null&&P)initSocket();
 </script>
 </body>
 </html>

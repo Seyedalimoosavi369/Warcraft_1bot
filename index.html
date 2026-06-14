@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warcraft Bot</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+}
+.header {
+    background: linear-gradient(135deg, #1a1f2e, #2d1b69);
+    padding: 20px;
+    text-align: center;
+    border-bottom: 2px solid #f0c040;
+}
+.header h1 { color: #f0c040; font-size: 24px; text-shadow: 0 0 10px #f0c040; }
+.coins { color: #ffd700; font-size: 18px; margin-top: 5px; }
+.menu { padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.btn {
+    background: linear-gradient(135deg, #1a2744, #2d1b69);
+    border: 2px solid #4a3f8f;
+    border-radius: 12px;
+    padding: 20px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: white;
+}
+.btn:active { transform: scale(0.95); border-color: #f0c040; }
+.btn .icon { font-size: 32px; margin-bottom: 8px; }
+.btn .label { font-size: 14px; color: #c9d1d9; }
+.screen { display: none; padding: 20px; }
+.screen.active { display: block; }
+.hero-card {
+    background: linear-gradient(135deg, #1a2744, #2d1b69);
+    border: 2px solid #4a3f8f;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.hero-card:active { border-color: #f0c040; }
+.hero-card h3 { color: #f0c040; font-size: 18px; }
+.hero-card .stats { display: flex; gap: 15px; margin-top: 8px; font-size: 13px; }
+.stat { color: #8b949e; }
+.stat span { color: white; }
+.back-btn {
+    background: #2d1b69;
+    border: 1px solid #4a3f8f;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    display: inline-block;
+}
+.progress-bar {
+    background: #21262d;
+    border-radius: 10px;
+    height: 12px;
+    margin-top: 5px;
+    overflow: hidden;
+}
+.progress-fill {
+    background: linear-gradient(90deg, #f0c040, #ff6b35);
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s;
+}
+.battle-area {
+    background: linear-gradient(135deg, #1a0a0a, #2d0a0a);
+    border: 2px solid #8b0000;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin: 15px 0;
+}
+.hp-bar { margin: 10px 0; }
+.hp-bar .label { font-size: 12px; color: #8b949e; margin-bottom: 3px; }
+.hp-fill { background: linear-gradient(90deg, #00ff00, #00cc00); }
+.enemy-hp { background: linear-gradient(90deg, #ff4444, #cc0000); }
+.attack-btn {
+    background: linear-gradient(135deg, #8b0000, #cc0000);
+    border: none;
+    color: white;
+    padding: 15px 40px;
+    border-radius: 10px;
+    font-size: 18px;
+    cursor: pointer;
+    margin: 10px;
+    transition: all 0.3s;
+}
+.attack-btn:active { transform: scale(0.95); }
+.item-card {
+    background: #1a2744;
+    border: 1px solid #4a3f8f;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.buy-btn {
+    background: #f0c040;
+    color: #000;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.daily-btn {
+    background: linear-gradient(135deg, #f0c040, #ff6b35);
+    border: none;
+    color: #000;
+    padding: 20px 40px;
+    border-radius: 12px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 20px;
+}
+.leaderboard-item {
+    background: #1a2744;
+    border: 1px solid #4a3f8f;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+}
+.type-btn {
+    background: linear-gradient(135deg, #1a2744, #2d1b69);
+    border: 2px solid #4a3f8f;
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    cursor: pointer;
+    margin-bottom: 10px;
+    width: 100%;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+.type-btn:active { border-color: #f0c040; }
+</style>
+</head>
+<body>
+
+<div id="main-screen">
+    <div class="header">
+        <h1>⚔️ Warcraft Bot</h1>
+        <div class="coins" id="coins-display">💰 در حال بارگذاری...</div>
+        <div style="color:#8b949e;font-size:13px;margin-top:3px" id="hero-display"></div>
+    </div>
+    <div class="menu">
+        <div class="btn" onclick="showScreen('pvp')">
+            <div class="icon">⚔️</div>
+            <div class="label">مبارزه PvP</div>
+        </div>
+        <div class="btn" onclick="showScreen('profile')">
+            <div class="icon">👤</div>
+            <div class="label">پروفایل</div>
+        </div>
+        <div class="btn" onclick="showScreen('shop')">
+            <div class="icon">🎒</div>
+            <div class="label">فروشگاه</div>
+        </div>
+        <div class="btn" onclick="showScreen('leaderboard')">
+            <div class="icon">🏆</div>
+            <div class="label">لیدربورد</div>
+        </div>
+        <div class="btn" onclick="showScreen('daily')">
+            <div class="icon">🎁</div>
+            <div class="label">جایزه روزانه</div>
+        </div>
+        <div class="btn" onclick="showScreen('heroes')">
+            <div class="icon">🧙</div>
+            <div class="label">هیروها</div>
+        </div>
+    </div>
+</div>
+
+<div id="select-hero-screen" class="screen">
+    <div class="header"><h1>⚔️ هیرو انتخاب کن</h1></div>
+    <div style="padding:20px">
+        <div class="type-btn" onclick="showHeroesByType('Strength')">💪 Strength Heroes</div>
+        <div class="type-btn" onclick="showHeroesByType('Agility')">🏃 Agility Heroes</div>
+        <div class="type-btn" onclick="showHeroesByType('Intelligence')">🧠 Intelligence Heroes</div>
+        <div id="heroes-list"></div>
+    </div>
+</div>
+
+<div id="profile-screen" class="screen">
+    <div class="header"><h1>👤 پروفایل</h1></div>
+    <div style="padding:20px">
+        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
+        <div id="profile-content"></div>
+    </div>
+</div>
+
+<div id="pvp-screen" class="screen">
+    <div class="header"><h1>⚔️ مبارزه PvP</h1></div>
+    <div style="padding:20px">
+        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
+        <div id="pvp-content"></div>
+    </div>
+</div>
+
+<div id="shop-screen" class="screen">
+    <div class="header"><h1>🎒 فروشگاه</h1></div>
+    <div style="padding:20px">
+        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
+        <div id="shop-content"></div>
+    </div>
+</div>
+
+<div id="daily-screen" class="screen">
+    <div class="header"><h1>🎁 جایزه روزانه</h1></div>
+    <div style="padding:20px;text-align:center">
+        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
+        <div id="daily-content"></div>
+    </div>
+</div>
+
+<div id="leaderboard-screen" class="screen">
+    <div class="header"><h1>🏆 لیدربورد</h1></div>
+    <div style="padding:20px">
+        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
+        <div id="leaderboard-content"></div>
+    </div>
+</div>
+
+<div id="heroes-screen" class="screen">
+    <div class="header"><h1>🧙 هیروها</h1></div>
+    <div style="padding:20px">
+        <div class="back-btn" onclick="showMain()">🔙 بازگشت</div>
+        <div id="all-heroes-content"></div>
+    </div>
+</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+tg.setHeaderColor('#0d1117');
+
+const HEROES = {
+    death_knight: {name:"Death Knight",evolved:"Lich King",type:"Strength",hp:620,atk:52,def:8,icon:"💀",skills:["Death Coil","Animate Dead","Death Pact"]},
+    paladin: {name:"Paladin",evolved:"Ashbringer",type:"Strength",hp:600,atk:48,def:12,icon:"⚔️",skills:["Holy Light","Divine Shield","Resurrection"]},
+    far_seer: {name:"Far Seer",evolved:"Warchief",type:"Strength",hp:580,atk:50,def:10,icon:"🌩️",skills:["Chain Lightning","Far Sight","Earthquake"]},
+    beastmaster: {name:"Beastmaster",evolved:"Warlord",type:"Strength",hp:650,atk:55,def:7,icon:"🐗",skills:["Summon Bear","Stampede","War Drums"]},
+    demon_hunter: {name:"Demon Hunter",evolved:"Betrayer",type:"Agility",hp:520,atk:65,def:5,icon:"😈",skills:["Mana Burn","Evasion","Metamorphosis"]},
+    warden: {name:"Warden",evolved:"Shadowblade",type:"Agility",hp:500,atk:68,def:4,icon:"🗡️",skills:["Fan of Knives","Blink","Shadow Strike"]},
+    shadow_hunter: {name:"Shadow Hunter",evolved:"Voodoo Master",type:"Agility",hp:510,atk:60,def:6,icon:"🧿",skills:["Hex","Voodoo","Big Bad Voodoo"]},
+    axe_thrower: {name:"Axe Thrower",evolved:"Berserker",type:"Agility",hp:530,atk:63,def:5,icon:"🪓",skills:["Throw Axe","Berserker Rage","Cleave"]},
+    archmage: {name:"Archmage",evolved:"Arcane Lord",type:"Intelligence",hp:460,atk:75,def:3,icon:"🧙",skills:["Blizzard","Summon Water Elem","Mass Teleport"]},
+    lich: {name:"Lich",evolved:"Lich Overlord",type:"Intelligence",hp:450,atk:78,def:2,icon:"👻",skills:["Frost Nova","Dark Ritual","Death and Decay"]},
+    priestess: {name:"Priestess of Moon",evolved:"Moon Goddess",type:"Intelligence",hp:470,atk:70,def:4,icon:"🌙",skills:["Starfall","Trueshot Aura","Scout"]},
+    prophet: {name:"Prophet",evolved:"Medivh Reborn",type:"Intelligence",hp:455,atk:72,def:3,icon:"🔮",skills:["Raven Form","Force of Nature","Silence"]},
+};
+
+const ITEMS = {
+    sword: {name:"Sword of Arthas ⚔️",atk:15,def:0,price:200},
+    shield: {name:"Aegis Shield 🛡️",atk:0,def:20,price:250},
+    armor: {name:"Plate Armor 🥋",atk:0,def:15,price:180},
+    boots: {name:"Boots of Speed 👢",atk:5,def:5,price:150},
+    staff: {name:"Staff of Wizardry 🪄",atk:25,def:0,price:300},
+    cloak: {name:"Cloak of Flames 🔥",atk:10,def:10,price:220},
+};
+
+let player = JSON.parse(localStorage.getItem('wc_player') || 'null');
+let battleState = null;
+
+function savePlayer() {
+    localStorage.setItem('wc_player', JSON.stringify(player));
+    updateHeader();
+}
+
+function updateHeader() {
+    if (player) {
+        const h = HEROES[player.hero_id];
+        const name = player.level >= 6 ? h.evolved : h.name;
+        document.getElementById('coins-display').textContent = `💰 ${player.coins} سکه`;
+        document.getElementById('hero-display').textContent = `${h.icon} ${name} | لول ${player.level}/25`;
+    }
+}
+
+function showMain() {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('main-screen').style.display = 'block';
+    document.getElementById('select-hero-screen').classList.remove('active');
+}
+
+function showScreen(name) {
+    if (!player) {
+        document.getElementById('main-screen').style.display = 'none';
+        document.getElementById('select-hero-screen').classList.add('active');
+        return;
+    }
+    document.getElementById('main-screen').style.display = 'none';
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(name+'-screen').classList.add('active');
+    if (name === 'profile') loadProfile();
+    if (name === 'pvp') loadPvp();
+    if (name === 'shop') loadShop();
+    if (name === 'daily') loadDaily();
+    if (name === 'leaderboard') loadLeaderboard();
+    if (name === 'heroes') loadAllHeroes();
+}
+
+function showHeroesByType(type) {
+    const list = document.getElementById('heroes-list');
+    const filtered = Object.entries(HEROES).filter(([k,v]) => v.type === type);
+    list.innerHTML = filtered.map(([id, h]) => `
+        <div class="hero-card" onclick="selectHero('${id}')">
+            <h3>${h.icon} ${h.name}</h3>
+            <div style="color:#8b949e;font-size:12px">لول 6: ${h.evolved}</div>
+            <div class="stats">
+                <div class="stat">❤️ <span>${h.hp}</span></div>
+                <div class="stat">⚔️ <span>${h.atk}</span></div>
+                <div class="stat">🛡️ <span>${h.def}</span></div>
+            </div>
+            <div style="margin-top:8px;font-size:12px;color:#8b949e">
+                ${h.skills.map(s => `• ${s}`).join(' | ')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectHero(id) {
+    const h = HEROES[id];
+    const uid = tg.initDataUnsafe?.user?.id || Date.now();
+    player = {
+        user_id: uid,
+        hero_id: id,
+        level: 1,
+        xp: 0,
+        hp: h.hp,
+        max_hp: h.hp,
+        atk: h.atk,
+        def: h.def,
+        coins: 500,
+        wins: 0,
+        losses: 0,
+        items: [],
+        last_daily: 0,
+        code: Math.random().toString(36).substr(2,8).toUpperCase()
+    };
+    savePlayer();
+    showMain();
+    alert(`✅ ${h.icon} ${h.name} انتخاب شد!\n💰 500 سکه شروع`);
+}
+
+function loadProfile() {
+    const h = HEROES[player.hero_id];
+    const name = player.level >= 6 ? h.evolved : h.name;
+    const xpNeed = player.level * 150;
+    const xpPct = Math.min(100, (player.xp / xpNeed) * 100);
+    const hpPct = Math.min(100, (player.hp / player.max_hp) * 100);
+    document.getElementById('profile-content').innerHTML = `
+        <div class="hero-card">
+            <h3>${h.icon} ${name} ${player.level >= 6 ? '⭐' : ''}</h3>
+            <div style="margin:10px 0">
+                <div style="display:flex;justify-content:space-between;font-size:13px">
+                    <span>❤️ HP: ${player.hp}/${player.max_hp}</span>
+                    <span>${Math.round(hpPct)}%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill hp-fill" style="width:${hpPct}%"></div></div>
+            </div>
+            <div style="margin:10px 0">
+                <div style="display:flex;justify-content:space-between;font-size:13px">
+                    <span>✨ XP: ${player.xp}/${xpNeed}</span>
+                    <span>لول ${player.level}/25</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${xpPct}%"></div></div>
+            </div>
+            <div class="stats" style="flex-wrap:wrap;gap:10px">
+                <div class="stat">⚔️ ATK: <span>${player.atk}</span></div>
+                <div class="stat">🛡️ DEF: <span>${player.def}</span></div>
+                <div class="stat">🏆 برد: <span>${player.wins}</span></div>
+                <div class="stat">💀 باخت: <span>${player.losses}</span></div>
+                <div class="stat">💰 سکه: <span>${player.coins}</span></div>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:#8b949e">🔑 کد: ${player.code}</div>
+            <div style="margin-top:10px;font-size:12px;color:#f0c040">
+                🎯 اسکیل‌ها: ${h.skills.join(' | ')}
+            </div>
+        </div>
+        ${player.hp < player.max_hp ? `<button class="daily-btn" onclick="restoreHp()" style="background:linear-gradient(135deg,#1a4434,#0d6e45)">💊 استراحت (بازگرداندن HP) - 50 سکه</button>` : ''}
+    `;
+}
+
+function restoreHp() {
+    if (player.coins < 50) { alert('سکه کافی نداری!'); return; }
+    player.coins -= 50;
+    player.hp = player.max_hp;
+    savePlayer();
+    loadProfile();
+    alert('💊 HP کامل شد!');
+}
+
+function loadPvp() {
+    const h = HEROES[player.hero_id];
+    document.getElementById('pvp-content').innerHTML = `
+        <div class="battle-area">
+            <h3 style="color:#f0c040;margin-bottom:15px">⚔️ آماده مبارزه؟</h3>
+            <p style="color:#8b949e;margin-bottom:15px">یه حریف رندوم پیدا میکنیم</p>
+            <div style="font-size:40px;margin:20px 0">${h.icon}</div>
+            <div style="font-size:14px;margin-bottom:15px">
+                ❤️ HP: ${player.hp}/${player.max_hp} | ⚔️ ATK: ${player.atk} | 🛡️ DEF: ${player.def}
+            </div>
+            <button class="attack-btn" onclick="startBattle()">⚔️ جنگ!</button>
+        </div>
+        <div id="battle-log"></div>
+    `;
+}
+
+function startBattle() {
+    if (player.hp <= 0) { alert('اول HP خودت رو بازگردون!'); return; }
+    
+    const enemyIds = Object.keys(HEROES).filter(k => k !== player.hero_id);
+    const enemyId = enemyIds[Math.floor(Math.random() * enemyIds.length)];
+    const eh = HEROES[enemyId];
+    const enemyLevel = Math.max(1, player.level + Math.floor(Math.random()*3) - 1);
+    
+    battleState = {
+        enemy_id: enemyId,
+        enemy_name: enemyLevel >= 6 ? eh.evolved : eh.name,
+        enemy_icon: eh.icon,
+        enemy_hp: eh.hp + (enemyLevel * 20),
+        enemy_max_hp: eh.hp + (enemyLevel * 20),
+        enemy_atk: eh.atk + (enemyLevel * 3),
+        enemy_def: eh.def + enemyLevel,
+        enemy_level: enemyLevel,
+        round: 1,
+        log: []
+    };
+    
+    renderBattle();
+}
+
+function renderBattle() {
+    if (!battleState) return;
+    const h = HEROES[player.hero_id];
+    const myHpPct = Math.max(0, (player.hp / player.max_hp) * 100);
+    const enemyHpPct = Math.max(0, (battleState.enemy_hp / battleState.enemy_max_hp) * 100);
+    
+    document.getElementById('pvp-content').innerHTML = `
+        <div class="battle-area">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div style="text-align:center;flex:1">
+                    <div style="font-size:35px">${h.icon}</div>
+                    <div style="font-size:12px;color:#f0c040">${player.level >= 6 ? h.evolved : h.name}</div>
+                    <div class="hp-bar">
+                        <div class="label">❤️ ${player.hp}/${player.max_hp}</div>
+                        <div class="progress-bar"><div class="progress-fill hp-fill" style="width:${myHpPct}%"></div></div>
+                    </div>
+                </div>
+                <div style="font-size:24px;color:#f0c040">VS</div>
+                <div style="text-align:center;flex:1">
+                    <div style="font-size:35px">${battleState.enemy_icon}</div>
+                    <div style="font-size:12px;color:#ff4444">${battleState.enemy_name} (${battleState.enemy_level})</div>
+                    <div class="hp-bar">
+                        <div class="label">❤️ ${battleState.enemy_hp}/${battleState.enemy_max_hp}</div>
+                        <div class="progress-bar"><div class="progress-fill enemy-hp" style="width:${enemyHpPct}%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:15px">
+                <button class="attack-btn" onclick="doAttack('normal')">⚔️ حمله</button>
+                <button class="attack-btn" onclick="doAttack('skill')" style="background:linear-gradient(135deg,#1a2d8b,#2d4fcc)">✨ اسکیل</button>
+                <button class="attack-btn" onclick="fleeBattle()" style="background:linear-gradient(135deg,#2d2d2d,#555)">🏃 فرار</button>
+            </div>
+        </div>
+        <div id="battle-log" style="max-height:150px;overflow-y:auto;padding:10px;background:#1a1f2e;border-radius:8px;margin-top:10px;font-size:13px">
+            ${battleState.log.slice(-5).map(l => `<div style="padding:3px 0;border-bottom:1px solid #21262d">${l}</div>`).join('')}
+        </div>
+    `;
+}
+
+function doAttack(type) {
+    if (!battleState) return;
+    
+    let myDmg = Math.max(1, player.atk - battleState.enemy_def + Math.floor(Math.random()*10) - 3);
+    if (type === 'skill') myDmg = Math.floor(myDmg * 1.5);
+    
+    let enemyDmg = Math.max(1, battleState.enemy_atk - player.def + Math.floor(Math.random()*8) - 3);
+    
+    battleState.enemy_hp -= myDmg;
+    battleState.log.push(`🔵 تو ${myDmg} ضربه زدی!`);
+    
+    if (battleState.enemy_hp <= 0) {
+        endBattle(true);
+        return;
+    }
+    
+    player.hp -= enemyDmg;
+    battleState.log.push(`🔴 دشمن ${enemyDmg} ضربه زد!`);
+    battleState.round++;
+    
+    if (player.hp <= 0) {
+        player.hp = 0;
+        endBattle(false);
+        return;
+    }
+    
+    savePlayer();
+    renderBattle();
+}
+
+function endBattle(won) {
+    battleState = null;
+    if (won) {
+        const reward = Math.floor(Math.random() * 150) + 50;
+        const xpGain = 50 + player.level * 10;
+        player.coins += reward;
+        player.wins++;
+        player.xp += xpGain;
+        if (player.xp >= player.level * 150 && player.level < 25) {
+            player.level++;
+            player.xp = 0;
+            player.max_hp += 30;
+            player.hp = player.max_hp;
+            player.atk += 3;
+            player.def += 1;
+            savePlayer();
+            alert(`🏆 بردی! +${reward} سکه +${xpGain} XP\n⬆️ لول آپ! الان لول ${player.level}`);
+        } else {
+            savePlayer();
+            alert(`🏆 بردی! +${reward} سکه +${xpGain} XP`);
+        }
+    } else {
+        player.losses++;
+        savePlayer();
+        alert('💀 باختی! برو HP خودت رو بازگردون.');
+    }
+    showMain();
+}
+
+function fleeBattle() {
+    battleState = null;
+    player.losses++;
+    savePlayer();
+    alert('🏃 فرار کردی!');
+    showMain();
+}
+
+function loadShop() {
+    document.getElementById('shop-content').innerHTML = Object.entries(ITEMS).map(([id, item]) => {
+        const owned = player.items.includes(id);
+        return `
+            <div class="item-card">
+                <div>
+                    <div style="font-weight:bold">${item.name}</div>
+                    <div style="font-size:12px;color:#8b949e">
+                        ${item.atk > 0 ? `⚔️ +${item.atk} ATK ` : ''}${item.def > 0 ? `🛡️ +${item.def} DEF` : ''}
+                    </div>
+                    <div style="color:#f0c040;font-size:13px">💰 ${item.price} سکه</div>
+                </div>
+                ${owned ? '<span style="color:#00ff00">✅ داری</span>' : 
+                `<button class="buy-btn" onclick="buyItem('${id}')">خرید</button>`}
+            </div>
+        `;
+    }).join('');
+}
+
+function buyItem(id) {
+    const item = ITEMS[id];
+    if (player.coins < item.price) { alert('سکه کافی نداری!'); return; }
+    if (player.items.includes(id)) { alert('قبلاً خریدی!'); return; }
+    player.coins -= item.price;
+    player.items.push(id);
+    player.atk += item.atk;
+    player.def += item.def;
+    savePlayer();
+    loadShop();
+    alert(`✅ ${item.name} خریدی!`);
+}
+
+function loadDaily() {
+    const now = Date.now();
+    const last = player.last_daily || 0;
+    const diff = now - last;
+    const ready = diff >= 86400000;
+    
+    if (ready) {
+        document.getElementById('daily-content').innerHTML = `
+            <div style="font-size:60px;margin:20px 0">🎁</div>
+            <h2 style="color:#f0c040">جایزه روزانه آماده‌ست!</h2>
+            <p style="color:#8b949e;margin:10px 0">بین 100 تا 1000 سکه میگیری</p>
+            <button class="daily-btn" onclick="claimDaily()">🎁 دریافت جایزه!</button>
+        `;
+    } else {
+        const remaining = 86400000 - diff;
+        const h = Math.floor(remaining / 3600000);
+        const m = Math.floor((remaining % 3600000) / 60000);
+        document.getElementById('daily-content').innerHTML = `
+            <div style="font-size:60px;margin:20px 0">⏰</div>
+            <h2 style="color:#8b949e">قبلاً گرفتی!</h2>
+            <p style="color:#8b949e;margin:10px 0">${h} ساعت و ${m} دقیقه دیگه برگرد</p>
+        `;
+    }
+}
+
+function claimDaily() {
+    const reward = Math.floor(Math.random() * 900) + 100;
+    player.coins += reward;
+    player.last_daily = Date.now();
+    savePlayer();
+    alert(`🎁 ${reward} سکه گرفتی!`);
+    loadDaily();
+}
+
+function loadLeaderboard() {
+    const mockData = [
+        {name:"Death Knight 💀", level:15, wins:42},
+        {name:"Archmage 🧙", level:12, wins:38},
+        {name:"Demon Hunter 😈", level:10, wins:31},
+        {name:"Lich 👻", level:9, wins:28},
+        {name:"تو 🌟", level:player.level, wins:player.wins},
+    ].sort((a,b) => b.wins - a.wins);
+    
+    const medals = ["🥇","🥈","🥉","4️⃣","5️⃣"];
+    document.getElementById('leaderboard-content').innerHTML = mockData.map((p,i) => `
+        <div class="leaderboard-item">
+            <span>${medals[i]} ${p.name}</span>
+            <span style="color:#f0c040">لول ${p.level} | ${p.wins} برد</span>
+        </div>
+    `).join('');
+}
+
+function loadAllHeroes() {
+    document.getElementById('all-heroes-content').innerHTML = Object.entries(HEROES).map(([id,h]) => `
+        <div class="hero-card">
+            <h3>${h.icon} ${h.name} <span style="color:#8b949e;font-size:13px">(${h.type})</span></h3>
+            <div style="color:#f0c040;font-size:12px">لول 6: ${h.evolved} ⭐</div>
+            <div class="stats">
+                <div class="stat">❤️ <span>${h.hp}</span></div>
+                <div class="stat">⚔️ <span>${h.atk}</span></div>
+                <div class="stat">🛡️ <span>${h.def}</span></div>
+            </div>
+        </div>
+    `).join('');
+}
+
+updateHeader();
+if (!player) {
+    document.getElementById('main-screen').style.display = 'none';
+    document.getElementById('select-hero-screen').classList.add('active');
+}
+</script>
+</body>
+</html>
